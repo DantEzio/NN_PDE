@@ -687,7 +687,7 @@ if __name__=='__main__':
     
     t=np.array(t)
     
-    steps=3000
+    steps=100
     u_K0=np.array(Koopman_test0(t,u_norm,steps))
     u_K1=np.array(Koopman_test01(t,u_norm,steps))
     u_K2=np.array(Koopman_test1(t,u_norm,u_norm,steps))
