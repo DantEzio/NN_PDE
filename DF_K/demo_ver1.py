@@ -17,26 +17,15 @@ class DF_K:
         self.u_in=u_in
         self.encoding_in=encoding_in
         
-        self.D=0.24
-        self.deltt=0.1
+        self.D=2.4
+        self.deltt=0.2
+        self.deltx=1.0
         
-        self.ep=100
+        self.ep=1000
         self.h_size=20
-        self.batch_size=10
+        self.batch_size=100
         
         self.model=self._build_model()
-
-    def _build_NNu(self):
-        self.W1=tf.Variable(tf.truncated_normal([self.u_in,self.h_size],stddev=0.1))
-        self.b1=tf.Variable(tf.zeros([self.h_size]))
-        self.W11=tf.Variable(tf.truncated_normal([self.h_size,self.h_size],stddev=0.1))
-        self.b11=tf.Variable(tf.zeros([self.h_size]))
-        self.W2=tf.Variable(tf.truncated_normal([self.h_size,self.u_in],stddev=0.1))
-        self.b2=tf.Variable(tf.zeros([self.u_in]))
-        
-        self.l1 = tf.nn.tanh(tf.matmul(self.x,self.W1)+self.b1)
-        self.l2 = tf.nn.tanh(tf.matmul(self.l1,self.W11)+self.b11)
-        self.u = tf.nn.tanh(tf.matmul(self.l2,self.W2)+self.b2)
         
     def _build_Encoding(self):
         self.W1e=tf.Variable(tf.truncated_normal([self.u_in,self.h_size],stddev=0.1))
@@ -46,9 +35,9 @@ class DF_K:
         self.W2e=tf.Variable(tf.truncated_normal([self.h_size,self.encoding_in],stddev=0.1))
         self.b2e=tf.Variable(tf.zeros([self.encoding_in]))
         
-        self.h1e=tf.nn.tanh(tf.matmul(self.u,self.W1e)+self.b1e)
-        self.h11e=tf.nn.tanh(tf.matmul(self.h1e,self.W11e)+self.b11e)
-        self.encodu=tf.nn.tanh(tf.matmul(self.h11e,self.W2e)+self.b2e)
+        self.h1e=tf.nn.relu(tf.matmul(self.u_0,self.W1e)+self.b1e)
+        self.h11e=tf.nn.relu(tf.matmul(self.h1e,self.W11e)+self.b11e)
+        self.encodu=tf.nn.relu(tf.matmul(self.h11e,self.W2e)+self.b2e)
         #K*encodu
 
     def _build_Decoding(self):
@@ -59,47 +48,154 @@ class DF_K:
         self.W2d=tf.Variable(tf.truncated_normal([self.h_size,self.u_in],stddev=0.1))
         self.b2d=tf.Variable(tf.zeros([self.u_in]))
             
-        self.h1d=tf.nn.tanh(tf.matmul(self.encodu,self.W1d)+self.b1d)
-        self.h11d=tf.nn.tanh(tf.matmul(self.h1d,self.W11d)+self.b11d)
-        self.decodu = tf.nn.tanh(tf.matmul(self.h11d,self.W2d)+self.b2d)
+        self.h1d=tf.nn.relu(tf.matmul(self.encodu,self.W1d)+self.b1d)
+        self.h11d=tf.nn.relu(tf.matmul(self.h1d,self.W11d)+self.b11d)
+        self.decodu = tf.nn.relu(tf.matmul(self.h11d,self.W2d)+self.b2d)
     
     def _build_K(self):
         self.K = tf.Variable(tf.random_normal([self.encoding_in,self.encoding_in]))
-        self.out_s0=tf.matmul(self.encodu,self.K)
-        self.out_s1=tf.nn.tanh(tf.matmul(self.out_s0,self.W1d)+self.b1d)
-        self.out_s11=tf.nn.tanh(tf.matmul(self.out_s1,self.W11d)+self.b11d)
-        self.out_s2=tf.nn.tanh(tf.matmul(self.out_s11,self.W2d)+self.b2d)
         
     def _build_sim(self):
-        self.u_0=tf.placeholder(tf.float32, [None, self.u_in], 'x')
         
-        self.sim_h1e=tf.nn.tanh(tf.matmul(self.u_0,self.W1e)+self.b1e)
-        self.sim_h11e=tf.nn.tanh(tf.matmul(self.sim_h1e,self.W11e)+self.b11e)
-        self.sim_encodu=tf.nn.tanh(tf.matmul(self.sim_h11e,self.W2e)+self.b2e)
+        self.sim_h1e=tf.nn.relu(tf.matmul(self.u_0,self.W1e)+self.b1e)
+        self.sim_h11e=tf.nn.relu(tf.matmul(self.sim_h1e,self.W11e)+self.b11e)
+        self.sim_encodu=tf.nn.relu(tf.matmul(self.sim_h11e,self.W2e)+self.b2e)
         
         self.u_m=tf.matmul(self.sim_encodu,self.K)
         
-        self.sim_h1d=tf.nn.tanh(tf.matmul(self.u_m,self.W1d)+self.b1d)
-        self.sim_h11d=tf.nn.tanh(tf.matmul(self.sim_h1d,self.W11d)+self.b11d)
-        self.u_t = tf.nn.tanh(tf.matmul(self.sim_h11d,self.W2d)+self.b2d)
+        self.sim_h1d=tf.nn.relu(tf.matmul(self.u_m,self.W1d)+self.b1d)
+        self.sim_h11d=tf.nn.relu(tf.matmul(self.sim_h1d,self.W11d)+self.b11d)
+        self.u_t = tf.nn.relu(tf.matmul(self.sim_h11d,self.W2d)+self.b2d)
         
     def _build_PI(self):
-        self.er1=(self.out_s2-self.u)/self.deltt
-        self.er2=tf.gradients(self.u,self.x)
-        self.er3=tf.gradients(self.er2,self.x)
-        self.er=self.er1+tf.multiply(self.u,self.er2)-tf.Variable(self.D)*self.er3
         
-        self.loss1=tf.reduce_mean(tf.square(self.u-self.decodu))
-        self.loss2=tf.reduce_mean(tf.square(self.er))
+        #losspre结合PED能量不等式
+        tA=[]
+        for i in range(self.u_in):
+            tem=[]
+            if i==0:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(0.0)
+                    elif j==i+1:
+                        tem.append(-0.5*self.deltt/self.deltx)
+                    else:
+                        tem.append(0.0)
+            
+            elif i==self.encoding_in-1:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(0.0)
+                    elif j==i-1:
+                        tem.append(0.5*self.deltt/self.deltx)
+                    else:
+                        tem.append(0.0)
+            
+            else:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(0.5*self.deltt/self.deltx)
+                    elif j==i+1:
+                        tem.append(0.0)
+                    elif j==i+2:
+                        tem.append(-0.5*self.deltt/self.deltx)
+                    else:
+                        tem.append(0.0)
+            tA.append(tem)
+    
+        self.A1=tf.cast(tf.constant(np.mat(tA)),tf.float32)
         
-        self.loss=self.loss1+self.loss2
+        tA=[]
+        for i in range(self.u_in):
+            tem=[]
+            
+            if i==0:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(-self.deltt*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+1:
+                        tem.append(0.5*self.deltt*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            
+            elif i==self.encoding_in-1:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(-self.deltt*self.deltt/(self.deltx*self.deltx))
+                    elif j==i-1:
+                        tem.append(0.5*self.deltt*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            
+            else:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(0.5*self.deltt*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+1:
+                        tem.append(-self.deltt*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+2:
+                        tem.append(0.5*self.deltt*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            tA.append(tem)
     
-        self.opt=tf.compat.v1.train.AdamOptimizer(0.1).minimize(self.loss)
+        self.A2=tf.cast(tf.constant(np.mat(tA)),tf.float32)
+        
+        tA=[]
+        for i in range(self.u_in):
+            tem=[]
+            
+            if i==0:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(self.D*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+1:
+                        tem.append(-0.5*self.D*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            
+            elif i==self.u_in-1:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(self.D*self.deltt/(self.deltx*self.deltx))
+                    elif j==i-1:
+                        tem.append(-0.5*self.D*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            
+            else:
+                for j in range(self.u_in):
+                    if j==i:
+                        tem.append(-0.5*self.D*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+1:
+                        tem.append(self.D*self.deltt/(self.deltx*self.deltx))
+                    elif j==i+2:
+                        tem.append(-0.5*self.D*self.deltt/(self.deltx*self.deltx))
+                    else:
+                        tem.append(0.0)
+            tA.append(tem)
     
+        self.A3=tf.cast(tf.constant(np.mat(tA)),tf.float32)
+        
+        self.t1=tf.matmul(self.u_0,self.A1)
+        self.t2=tf.matmul(self.u_0,self.A2)
+        self.t3=tf.multiply(self.u_0,self.u_0)
+        
+        self.loss2=tf.sqrt(tf.reduce_mean(tf.square(tf.multiply(self.t1,self.u_0)+tf.multiply(self.t2,self.t3)+tf.matmul(self.u_0,self.A3)+self.u_0-self.u_t)))
+        
+        self.loss1=tf.reduce_mean(tf.square(self.u_0-self.decodu))
+        
+        self.loss=0.5*self.loss1+self.loss2
+    
+        self.opt_0=tf.compat.v1.train.AdamOptimizer(0.1).minimize(self.loss)
+        
+        self.opt_1=tf.compat.v1.train.AdamOptimizer(0.1).minimize(self.loss1)
+        self.opt_2=tf.compat.v1.train.AdamOptimizer(0.1).minimize(self.loss2)
+      
+        
     def _build_model(self):
-        self.x = tf.placeholder(tf.float32, [None, self.u_in], 'x')
+        self.u_0 = tf.placeholder(tf.float32, [None, self.u_in], 'u0')
 
-        self._build_NNu()
         self._build_Encoding()
         self._build_Decoding()
         self._build_K()
@@ -137,6 +233,31 @@ class DF_K:
         return u
     
     
+    def normalize(self,u,maxu1,minu1):
+        u_norm=[]
+        n,m=u.shape
+        for i in range(n):
+            tem=[]
+            for j in range(m):
+                tem.append((u[i,j]-minu1)/(maxu1-minu1))
+            u_norm.append(tem)
+        
+        u_norm=np.array(u_norm)
+        return u_norm
+    
+    def vnormalize(self,u_K,maxu1,minu1):
+        u_vnorm=[]
+        n,m=u_K.shape
+        for i in range(n):
+            tem=[]
+            for j in range(m):
+                tem.append(u_K[i,j]*(maxu1-minu1)+minu1)
+            u_vnorm.append(tem)
+        
+        u_vnorm=np.array(u_vnorm)
+        return u_vnorm
+
+    
     def train(self):
         #self.sess.run(tf.global_variables_initializer())
         #tf.reset_default_graph()
@@ -150,15 +271,18 @@ class DF_K:
                 for j in range(self.batch_size):
                     temx=[]
                     for it in range(self.u_in):
-                        temx.append(np.random.random(1)[0])
+                        temx.append(float(np.random.random(1)[0]))
                     X.append(temx)
             
-                
                 for lit in range(100):
-                    sess.run(self.opt,feed_dict={self.x:X})
-                    loss_f=sess.run(self.loss,feed_dict={self.x:X})
+                    sess.run(self.opt_1,feed_dict={self.u_0:X})
+                for lit in range(100):
+                    sess.run(self.opt_2,feed_dict={self.u_0:X})
+                for lit in range(100):
+                    sess.run(self.opt_0,feed_dict={self.u_0:X})
+                    loss_f=sess.run(self.loss,feed_dict={self.u_0:X})
                     loss_set.append(loss_f)
-                print(np.sum(loss_set))
+                #print(np.sum(loss_set))
                 results.append(np.sum(loss_set))
             
             #test
@@ -180,9 +304,9 @@ class DF_K:
             u0=np.array(uic).reshape(1,self.u_in)
             for t in range(tnum):
                 u0[0]+=ubc[t]
-                if t==0:
-                    print(u0)
+                u0=self.normalize(u0,1.0,0.0)
                 um=sess.run(self.u_t,feed_dict={self.u_0:u0})
+                um=self.vnormalize(um,1.0,0.0)
                 test_results.append(um[0])
                 u0=um
             
