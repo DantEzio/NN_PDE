@@ -21,7 +21,7 @@ class SV_DHPM:
         self._inx=1
         self._int=1
         self._out=1
-        self.ep=100
+        self.ep=5000
         
         #河宽度
         self.b=3
