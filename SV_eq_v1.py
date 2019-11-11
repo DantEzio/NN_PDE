@@ -30,10 +30,15 @@ class SV_eq_es:
         hic=[]
         hbc=[]
         for i in range(self.tnum):
-            if i < self.tnum/3:
+            
+            if i < self.tnum/6:
                 Qbc.append(100.0)
+            elif i>3*self.tnum/6 and i<4*self.tnum:
+                Qbc.append(100.1)
             else:
-                Qbc.append(0.1)
+                Qbc.append(0.0)
+            
+            #Qbc.append(10*np.abs(np.sin(2*np.pi*i/self.tnum)))
             
             hbc.append(1.0)
         
@@ -129,7 +134,6 @@ class SV_eq_es:
                     Q2_1=Q[i+2,t]
                 
                 '''
-                
                 us0=0.5*(u[i-1,t]+u[i,t])+np.sqrt(10*A[i-1,t]/b[i-1])-np.sqrt(10*A[i,t]/b[i])
                 cs0=0.5*(np.sqrt(10*A[i-1,t]/b[i-1])+np.sqrt(10*A[i,t]/b[i]))+0.25*(u[i-1,t]-u[i,t])
                 SL_0=np.min([(u[i-1,t]-np.sqrt(10*A[i-1,t]/b[i-1])),us0-cs0])
@@ -175,7 +179,7 @@ class SV_eq_es:
                     II=((Q[i+2,t]/A[i+2,t])**2-0.5*(Q[i,t]/A[i,t])**2)/self.deltx
                 #print('ii:',II)
                 
-                '''
+                
                 III=0.0
                 if Q[i,t]>0:
                     if i<2:
@@ -203,9 +207,9 @@ class SV_eq_es:
                 deltZdown=(Z[i+2-k,t]-Z[i-k,t])/(2*self.deltx)
                 
                 III=np.sqrt(Cup)*deltZup+(1-np.sqrt(Cdown))*deltZdown
-                '''
                 
-                III=(Z[i+1,t]-Z[i-1,t])/(4*self.deltx)
+                
+                #III=(Z[i+1,t]-Z[i-1,t])/(4*self.deltx)
                 
                 #print('iii:',III)
                 ###############################################################
@@ -261,12 +265,12 @@ class SV_eq_es:
             
     
 if __name__=='__main__':
-    T=320.6
-    tnum=720
+    T=600.6
+    tnum=1000
     N=20
     xnum=20
     n=0.01
-    R=50
+    R=10
     sv=SV_eq_es(T,N,tnum,xnum,n,R)
     sv.sim()
         
