@@ -33,16 +33,16 @@ class SV_eq_es:
             if i < self.tnum/3:
                 Qbc.append(100.0)
             else:
-                Qbc.append(10.0)
+                Qbc.append(0.1)
             
-            hbc.append(0.01)
+            hbc.append(1.0)
         
         for j in range(self.xnum*2+1):
             if j<=(self.xnum*2+1)/3:
-                Qic.append(20.0)
+                Qic.append(0.0)
             else:
-                Qic.append(1.1)
-            hic.append(10.0)
+                Qic.append(0.0)
+            hic.append(1.0)
         return np.array(hic),np.array(hbc),np.array(Qic),np.array(Qbc)
     
     def sim(self):
@@ -67,6 +67,15 @@ class SV_eq_es:
         Z=np.ones((self.xnum*2+1,self.tnum))
         b=np.ones((self.xnum*2+1,1))
         
+        Q[:,0]=self.Qic
+        Q[:,1]=self.Qic
+        Q[0,:]=self.Qbc
+        Z[:,0]=self.hic
+        Z[:,1]=self.hic
+        Z[0,:]=self.hbc
+        
+        print(A.shape,Q.shape)
+        
         A[:,0]=Z[:,0]*b.T
         A[:,1]=Z[:,1]*b.T
         A[0,:]=Z[0,:]*b[0]
@@ -77,9 +86,9 @@ class SV_eq_es:
         
         for t in range(2,self.tnum-1):
             
-            for i in range(2,self.xnum-2):
+            for i in range(2,self.xnum*2-2):
                 
-                self.deltt=0.1*self.deltx/(np.abs(u[i,t])+np.sqrt(10*A[i,t]/b[i]))
+                self.deltt=0.05*self.deltx/(np.max(np.abs(u[:,t]))+np.sqrt(10*np.max(A[:,t]/b[i])))
                 
                 
                 #print(t,i)
@@ -207,36 +216,37 @@ class SV_eq_es:
                 Z[i,t+1]=A[i,t+1]/b[i]
                 u[i,t+1]=Q[i,t+1]/A[i,t+1]
                 
-            A[A.shape[1]-1,t+1]=A[A.shape[1]-3,t+1]
-            Q[Q.shape[1]-1,t+1]=Q[Q.shape[1]-3,t+1]
-            Z[Z.shape[1]-1,t+1]=Z[Z.shape[1]-3,t+1]
-            u[u.shape[1]-1,t+1]=u[u.shape[1]-3,t+1]
+            A[A.shape[0]-1,t+1]=A[A.shape[0]-3,t+1]
+            Q[Q.shape[0]-1,t+1]=Q[Q.shape[0]-3,t+1]
+            Z[Z.shape[0]-1,t+1]=Z[Z.shape[0]-3,t+1]
+            u[u.shape[0]-1,t+1]=u[u.shape[0]-3,t+1]
             
-            A[A.shape[1]-2,t+1]=A[A.shape[1]-3,t+1]
-            Q[Q.shape[1]-2,t+1]=Q[Q.shape[1]-3,t+1]
-            Z[Z.shape[1]-2,t+1]=Z[Z.shape[1]-3,t+1]
-            u[u.shape[1]-2,t+1]=u[u.shape[1]-3,t+1]
+            A[A.shape[0]-2,t+1]=A[A.shape[0]-3,t+1]
+            Q[Q.shape[0]-2,t+1]=Q[Q.shape[0]-3,t+1]
+            Z[Z.shape[0]-2,t+1]=Z[Z.shape[0]-3,t+1]
+            u[u.shape[0]-2,t+1]=u[u.shape[0]-3,t+1]
         
         
         #print(Z.shape,Q.shape)
         
         
         #draw Z,Q
+        #Z=Z[2:Z.shape[0]-3,2:Z.shape[1]-3]
         figure = plt.figure()
         ax = Axes3D(figure)
-        X = np.arange(0, self.X, self.X/Z.shape[0])         
-        Y = np.arange(0, self.T, self.T/Z.shape[1])
+        X = np.arange(0, self.X, self.X/(Z.shape[0]))         
+        Y = np.arange(0, self.T, self.T/(Z.shape[1]))
         #网格化数据
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, Z.T, rstride=1, cstride=1, cmap='rainbow')
         plt.show()
         
         
-        
+        #Q=Q[2:Q.shape[0]-3,2:Q.shape[1]-3]
         figure = plt.figure()
         ax = Axes3D(figure)
-        X = np.arange(0, self.X, self.X/Q.shape[0])         
-        Y = np.arange(0, self.T, self.T/Q.shape[1])
+        X = np.arange(0, self.X, self.X/(Q.shape[0]))         
+        Y = np.arange(0, self.T, self.T/(Q.shape[1]))
         #网格化数据
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, Q.T, rstride=1, cstride=1, cmap='rainbow')
@@ -251,12 +261,12 @@ class SV_eq_es:
             
     
 if __name__=='__main__':
-    T=40.6
-    tnum=90
-    N=50
-    xnum=50
-    n=0.02
-    R=0.05
+    T=320.6
+    tnum=720
+    N=20
+    xnum=20
+    n=0.01
+    R=50
     sv=SV_eq_es(T,N,tnum,xnum,n,R)
     sv.sim()
         
