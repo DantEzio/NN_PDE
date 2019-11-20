@@ -36,7 +36,7 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=10000
+        self.steps=100000
         self.lr=0.1
     
     #generate data based on SV equations
@@ -158,8 +158,10 @@ class NN_SV:
         
         er=[]
         for j in range(self.steps):
-            if j>int(self.steps*3/4):
+            if j>int(self.steps*4/10) and j<int(self.steps*8/10):
                 self.lr=0.001
+            if j>int(self.steps*9/10):
+                self.lr=0.0001
             self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                 self.Aic:Aic,
                                                 self.bc:bc,
@@ -182,8 +184,8 @@ class NN_SV:
                                              self.Aic:Aic,
                                              self.bc:bc})  
         resultQ,resultA=Qpp,App#((pre+1)/2)*(outmax[-1]-outmin[-1])+outmin[-1]
-        tv0=np.mat(resultQ*(maxu2-minu2)+minu2)
-        tv1=np.mat(resultA*(maxu1-minu1)+minu1)
+        tv0=np.mat(resultQ*(maxu1-minu1)+minu1)
+        tv1=np.mat(resultA*(maxu2-minu2)+minu2)
         
         print(tv0.shape,tv1.shape)
         
