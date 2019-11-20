@@ -175,7 +175,7 @@ class NN_SV:
             if j>int(self.steps*9/10):
                 self.lr=0.0001
                 
-            for i in range(2):
+            for i in range(6):
                 self.rate=i/10
                 self.data_generate()
                 #print(self.xnum,self.xn)
@@ -191,7 +191,9 @@ class NN_SV:
                                                     self.Qpre:Qp,
                                                     self.Apre:Ap})
                 er.append(r)
-            
+                saver = tf.train.Saver()
+                saver_path = saver.save(self.sess, "./save/model.ckpt")
+                print ("Model saved in file: ", saver_path)       
         plt.figure()
         plt.plot(er)    
         
