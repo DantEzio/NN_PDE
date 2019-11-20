@@ -201,7 +201,7 @@ class NN_SV:
     def test(self):
         #test on new dataset 
         saver = tf.train.Saver()
-        self.rate=0.3
+        self.rate=0.33
         self.data_generate()
         bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
         self.sess=tf.Session()
