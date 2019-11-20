@@ -3,6 +3,9 @@
 Created on Wed Nov 20 09:38:18 2019
 
 @author: Administrator
+说明：该代码使用RNN求解SV方程，RNN初始状态为ic，每个时间节点输入bc[i]，每个时间节点输出Q[i],A[i]
+数据来源于SV方法的混合差分公式的多组bcic对应的解，
+测试使用额外的icbc
 """
 
 import numpy as np
@@ -37,8 +40,8 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=2
-        self.lr=0.1
+        self.steps=5000
+        self.lr=1
     
     #generate data based on SV equations
     def data_generate(self):
@@ -140,7 +143,7 @@ class NN_SV:
         minu1=np.min(D1)
         maxu2=np.max(D2)
         minu2=np.min(D2)
-        print(maxu1,minu1,maxu2,minu2)
+        #print(maxu1,minu1,maxu2,minu2)
         D1=normalize(D1,maxu1,minu1)
         D2=normalize(D2,maxu2,minu2)
         Qic=np.array(D1[0])
@@ -175,7 +178,7 @@ class NN_SV:
             for i in range(2):
                 self.rate=i/10
                 self.data_generate()
-                print(self.xnum,self.xn)
+                #print(self.xnum,self.xn)
                 bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
                 self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                     self.Aic:Aic,
