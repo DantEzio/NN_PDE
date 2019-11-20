@@ -106,10 +106,11 @@ class NN_SV:
             self.total_loss = tf.reduce_mean(self.losses)
             self.train = tf.train.AdagradOptimizer(self.lr).minimize(self.total_loss)
 
-    #generate different data based on different bc&ic for training
-    def training(self):
-        self.sess=tf.Session()
-        self.sess.run(tf.global_variables_initializer())
+    
+    
+    
+    
+    def get_data(self,A,Q):
         
         def normalize(u,maxu1,minu1):
             u_norm=[]
@@ -133,28 +134,36 @@ class NN_SV:
             
             u_vnorm=np.array(u_vnorm)
             return u_vnorm
+        D1=A
+        D2=Q
+        maxu1=np.max(D1)
+        minu1=np.min(D1)
+        maxu2=np.max(D2)
+        minu2=np.min(D2)
+        print(maxu1,minu1,maxu2,minu2)
+        D1=normalize(D1,maxu1,minu1)
+        D2=normalize(D2,maxu2,minu2)
+        Qic=np.array(D1[0])
+        Aic=np.array(D2[0])
+        bc=np.array([D1[:,0],D2[:,0]])
+        Qp=np.array(D1)
+        Ap=np.array(D2)
+        bc=bc.reshape(1,self.tnum,2)
+        Qic=Qic.reshape(1,self.xnum)
+        Aic=Aic.reshape(1,self.xnum)
+        Qp=Qp.reshape(1,self.tnum,self.xnum)
+        Ap=Ap.reshape(1,self.tnum,self.xnum)
+        return bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2
+
+    
+    #generate different data based on different bc&ic for training
+    def training(self):
+        self.sess=tf.Session()
+        self.sess.run(tf.global_variables_initializer())
         
-        def get_data(A,Q):
-            D1=A
-            D2=Q
-            maxu1=np.max(D1)
-            minu1=np.min(D1)
-            maxu2=np.max(D2)
-            minu2=np.min(D2)
-            print(maxu1,minu1,maxu2,minu2)
-            D1=normalize(D1,maxu1,minu1)
-            D2=normalize(D2,maxu2,minu2)
-            Qic=np.array(D1[0])
-            Aic=np.array(D2[0])
-            bc=np.array([D1[:,0],D2[:,0]])
-            Qp=np.array(D1)
-            Ap=np.array(D2)
-            bc=bc.reshape(1,self.tnum,2)
-            Qic=Qic.reshape(1,self.xnum)
-            Aic=Aic.reshape(1,self.xnum)
-            Qp=Qp.reshape(1,self.tnum,self.xnum)
-            Ap=Ap.reshape(1,self.tnum,self.xnum)
-            return bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2
+        
+        
+        
         
         er=[]
         for j in range(self.steps):
@@ -167,7 +176,7 @@ class NN_SV:
                 self.rate=i/10
                 self.data_generate()
                 print(self.xnum,self.xn)
-                bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=get_data(self.A,self.Q) 
+                bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
                 self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                     self.Aic:Aic,
                                                     self.bc:bc,
@@ -180,16 +189,23 @@ class NN_SV:
                                                     self.Apre:Ap})
                 er.append(r)
             
-        figure = plt.figure()
+        plt.figure()
         plt.plot(er)    
         
+        #save model
+        saver = tf.train.Saver()
+        saver_path = saver.save(self.sess, "./save/model.ckpt")
+        print ("Model saved in file: ", saver_path)
         
-        
-        #test on new dataset
+    #test
+    def test(self):
+        #test on new dataset 
+        saver = tf.train.Saver()
         self.rate=0.3
         self.data_generate()
-        bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=get_data(self.A,self.Q) 
-
+        bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
+        self.sess=tf.Session()
+        saver.restore(self.sess, "./save/model.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
                                              self.bc:bc})  
@@ -240,10 +256,6 @@ class NN_SV:
         plt.show()
         
         
-    #test
-    def test(self):
-        pass
-        
 if __name__=='__main__':
     T=600.6
     tnum=500
@@ -255,7 +267,7 @@ if __name__=='__main__':
     nn.data_generate()
     nn._build_model()
     nn.training()
-    
+    nn.test()
     
 
        
