@@ -40,8 +40,8 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=5000
-        self.lr=1
+        self.steps=200
+        self.lr=0.1
     
     #generate data based on SV equations
     def data_generate(self):
@@ -59,12 +59,12 @@ class NN_SV:
         #LSTM model
         with tf.variable_scope('foo',reuse=tf.AUTO_REUSE):
 
-            self.bc = tf.placeholder(tf.float32, [self.batch_size,self.tnum,2], name='bc')
-            self.Qic=tf.placeholder(tf.float32,[self.batch_size,self.xnum], name='Qic')
-            self.Aic=tf.placeholder(tf.float32,[self.batch_size,self.xnum], name='Aic')
+            self.bc = tf.placeholder(tf.float32, [None,self.tnum,2], name='bc')
+            self.Qic=tf.placeholder(tf.float32,[None,self.xnum], name='Qic')
+            self.Aic=tf.placeholder(tf.float32,[None,self.xnum], name='Aic')
             
-            self.Qpre = tf.placeholder(tf.float32, [self.batch_size,self.tnum,self.xnum], name='Qout')
-            self.Apre = tf.placeholder(tf.float32, [self.batch_size,self.tnum,self.xnum], name='Aout')
+            self.Qpre = tf.placeholder(tf.float32, [None,self.tnum,self.xnum], name='Qout')
+            self.Apre = tf.placeholder(tf.float32, [None,self.tnum,self.xnum], name='Aout')
             
             #将输入的QA转为[self.batch_size,self.tnum,self.state_size]的东西输入
             with tf.variable_scope('icin'):
@@ -88,7 +88,7 @@ class NN_SV:
             
             self.init_state = tf.reshape(tf.nn.tanh(tf.matmul(self.Qic,self.WQic)+self.bQic)
                                         +tf.nn.tanh(tf.matmul(self.Aic,self.WAic)+self.bAic)
-                                                    ,[self.batch_size, self.state_size])
+                                                    ,[-1, self.state_size])
             #print(self.init_state.shape)
             self.rnn_inputs = self.bc
             #print(self.rnn_inputs.shape)
@@ -108,10 +108,6 @@ class NN_SV:
             self.losses = tf.sqrt(tf.square(self.Qout - self.Qpre)+tf.square(self.Aout - self.Apre))
             self.total_loss = tf.reduce_mean(self.losses)
             self.train = tf.train.AdagradOptimizer(self.lr).minimize(self.total_loss)
-
-    
-    
-    
     
     def get_data(self,A,Q):
         
@@ -151,49 +147,55 @@ class NN_SV:
         bc=np.array([D1[:,0],D2[:,0]])
         Qp=np.array(D1)
         Ap=np.array(D2)
-        bc=bc.reshape(1,self.tnum,2)
-        Qic=Qic.reshape(1,self.xnum)
-        Aic=Aic.reshape(1,self.xnum)
-        Qp=Qp.reshape(1,self.tnum,self.xnum)
-        Ap=Ap.reshape(1,self.tnum,self.xnum)
+        bc=bc.reshape(self.tnum,2)
+        Qic=Qic.reshape(self.xnum)
+        Aic=Aic.reshape(self.xnum)
+        Qp=Qp.reshape(self.tnum,self.xnum)
+        Ap=Ap.reshape(self.tnum,self.xnum)
         return bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2
 
     
     #generate different data based on different bc&ic for training
     def training(self):
         self.sess=tf.Session()
-        self.sess.run(tf.global_variables_initializer())
-        
-        
-        
-        
+        saver = tf.train.Saver()
+        #self.sess.run(tf.global_variables_initializer())
+        saver.restore(self.sess, "./save/model.ckpt")
+        bc,Qic,Aic,Qp,Ap=[],[],[],[],[]
+        for i in range(8):
+            self.rate=i/10
+            self.data_generate()
+            #print(self.xnum,self.xn)
+            bct,Qict,Aict,Qpt,Apt,_,_,_,_=self.get_data(self.A,self.Q) 
+            bc.append(bct)
+            Qic.append(Qict)
+            Aic.append(Aict)
+            Qp.append(Qpt)
+            Ap.append(Apt)
         
         er=[]
         for j in range(self.steps):
-            if j>int(self.steps*4/10) and j<int(self.steps*8/10):
+            if j>int(self.steps*2/10) and j<=int(self.steps*4/10):
+                self.lr=0.01
+            if j>int(self.steps*4/10) and j<=int(self.steps*9/10):
                 self.lr=0.001
             if j>int(self.steps*9/10):
                 self.lr=0.0001
-                
-            for i in range(6):
-                self.rate=i/10
-                self.data_generate()
-                #print(self.xnum,self.xn)
-                bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
-                self.sess.run(self.train,feed_dict={self.Qic:Qic,
-                                                    self.Aic:Aic,
-                                                    self.bc:bc,
-                                                    self.Qpre:Qp,
-                                                    self.Apre:Ap})
-                r=self.sess.run(self.total_loss,feed_dict={self.Qic:Qic,
-                                                    self.Aic:Aic,
-                                                    self.bc:bc,
-                                                    self.Qpre:Qp,
-                                                    self.Apre:Ap})
-                er.append(r)
-                saver = tf.train.Saver()
-                saver_path = saver.save(self.sess, "./save/model.ckpt")
-                print ("Model saved in file: ", saver_path)       
+
+            self.sess.run(self.train,feed_dict={self.Qic:Qic,
+                                                self.Aic:Aic,
+                                                self.bc:bc,
+                                                self.Qpre:Qp,
+                                                self.Apre:Ap})
+            r=self.sess.run(self.total_loss,feed_dict={self.Qic:Qic,
+                                                self.Aic:Aic,
+                                                self.bc:bc,
+                                                self.Qpre:Qp,
+                                                self.Apre:Ap})
+            er.append(r)
+            saver = tf.train.Saver()
+            saver_path = saver.save(self.sess, "./save/model.ckpt")
+            print (j,"Model saved in file: ", saver_path,'error:',r)       
         plt.figure()
         plt.plot(er)    
         
@@ -209,6 +211,8 @@ class NN_SV:
         self.rate=0.33
         self.data_generate()
         bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
+        bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
+        
         self.sess=tf.Session()
         saver.restore(self.sess, "./save/model.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
@@ -216,7 +220,13 @@ class NN_SV:
                                              self.bc:bc})  
         App=self.sess.run(self.Aout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
-                                             self.bc:bc})  
+                                             self.bc:bc})
+        r=self.sess.run(self.total_loss,feed_dict={self.Qic:Qic,
+                                                self.Aic:Aic,
+                                                self.bc:bc,
+                                                self.Qpre:Qp,
+                                                self.Apre:Ap})
+        print(r)
         resultQ,resultA=Qpp,App#((pre+1)/2)*(outmax[-1]-outmin[-1])+outmin[-1]
         tv0=np.mat(resultQ*(maxu1-minu1)+minu1)
         tv1=np.mat(resultA*(maxu2-minu2)+minu2)
@@ -271,7 +281,7 @@ if __name__=='__main__':
     nn=NN_SV(T,N,tnum,xnum,n,R)
     nn.data_generate()
     nn._build_model()
-    nn.training()
+    #nn.training()
     nn.test()
     
 
