@@ -40,8 +40,8 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=200
-        self.lr=0.1
+        self.steps=10000
+        self.lr=0.06
     
     #generate data based on SV equations
     def data_generate(self):
@@ -176,11 +176,9 @@ class NN_SV:
         er=[]
         for j in range(self.steps):
             if j>int(self.steps*2/10) and j<=int(self.steps*4/10):
+                self.lr=0.05
+            if j>int(self.steps*4/10):
                 self.lr=0.01
-            if j>int(self.steps*4/10) and j<=int(self.steps*9/10):
-                self.lr=0.001
-            if j>int(self.steps*9/10):
-                self.lr=0.0001
 
             self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                 self.Aic:Aic,
@@ -281,7 +279,7 @@ if __name__=='__main__':
     nn=NN_SV(T,N,tnum,xnum,n,R)
     nn.data_generate()
     nn._build_model()
-    #nn.training()
+    nn.training()
     nn.test()
     
 
