@@ -40,7 +40,7 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=10000
+        self.steps=2000
         self.lr=0.01
     
     #generate data based on SV equations
@@ -176,9 +176,9 @@ class NN_SV:
         er=[]
         for j in range(self.steps):
             if j>int(self.steps*2/10) and j<=int(self.steps*4/10):
-                self.lr=0.01
-            if j>int(self.steps*4/10):
-                self.lr=0.001
+                self.lr=0.005
+            if j>int(self.steps*9/10):
+                self.lr=0.002
 
             self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                 self.Aic:Aic,
@@ -206,7 +206,7 @@ class NN_SV:
     def test(self):
         #test on new dataset 
         saver = tf.train.Saver()
-        self.rate=0.33
+        self.rate=0.3
         self.data_generate()
         bc,Qic,Aic,Qp,Ap,maxu1,minu1,maxu2,minu2=self.get_data(self.A,self.Q) 
         bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
@@ -279,7 +279,7 @@ if __name__=='__main__':
     nn=NN_SV(T,N,tnum,xnum,n,R)
     nn.data_generate()
     nn._build_model()
-    #nn.training()
+    nn.training()
     nn.test()
     
 
