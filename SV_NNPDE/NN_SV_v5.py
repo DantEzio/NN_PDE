@@ -41,7 +41,7 @@ class NN_SV:
         self.batch_size=1
         self.state_size=20
         self.steps=10000
-        self.lr=0.001
+        self.lr=0.0005
     
     #generate data based on SV equations
     def data_generate(self):
