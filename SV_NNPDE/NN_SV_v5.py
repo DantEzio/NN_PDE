@@ -40,7 +40,7 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=10000
+        self.steps=1000
         self.lr=0.0005
     
     #generate data based on SV equations
