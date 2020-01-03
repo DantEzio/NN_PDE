@@ -40,7 +40,7 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=500
+        self.steps=100
         self.lr=0.0005
     
     #generate data based on SV equations
@@ -258,7 +258,7 @@ class NN_SV:
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, self.A, rstride=1, cstride=1, cmap='rainbow')
         plt.show()
-    
+        
         #draw V,H
         figure = plt.figure()
         ax = Axes3D(figure)
