@@ -490,7 +490,7 @@ if __name__=='__main__':
     xnum=20
     n=0.01
     R=10
-    for it in range(10):
+    for it in range(100):
         print('training round:',it)
         nn=NN_SV(T,N,tnum,xnum,n,R)
         nn.data_generate()
