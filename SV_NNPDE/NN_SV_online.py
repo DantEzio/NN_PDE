@@ -1,18 +1,231 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 20 09:38:18 2019
+Created on Fri Jan  3 16:41:42 2020
 
 @author: Administrator
-说明：该代码使用RNN求解SV方程，RNN初始状态为ic，每个时间节点输入bc[i]，每个时间节点输出Q[i],A[i]
-数据来源于SV方法的混合差分公式的多组bcic对应的解，
-测试使用额外的icbc
 """
+
 
 import numpy as np
 import tensorflow as tf 
-import SV_eq_v2 as SV
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import gc
+
+#计算核
+class SV_eq_v2:
+    def __init__(self,T,X,tnum,xnum,n,R,rate):
+        self.T=T
+        self.X=X
+        self.xnum=xnum
+        self.tnum=tnum
+        self.deltt=self.T/self.tnum
+        self.deltx=self.X/self.xnum
+        
+        self.n=n
+        self.R=R
+        
+        self.hic,self.hbc,self.Qic,self.Qbc=self.IcBc(rate)
+        
+    def IcBc(self,rate):
+        #根据rate生成不同的bc&ic
+        #rate是出现峰的位置
+        Qic=[]
+        Qbc=[]
+        hic=[]
+        hbc=[]
+        for i in range(self.tnum):
+            
+            if i >= self.tnum*rate and i<=self.tnum*(0.2+rate):
+                Qbc.append(5.0)
+            else:
+                Qbc.append(0.0)
+            
+            #Qbc.append(10*np.abs(np.sin(2*np.pi*i/self.tnum)))
+            
+            hbc.append(1.0)
+        
+        for j in range(self.xnum*2+1):
+            if j<=(self.xnum*2+1)/3:
+                Qic.append(0.0)
+            else:
+                Qic.append(0.0)
+            hic.append(1.0)
+
+        return np.array(hic),np.array(hbc),np.array(Qic),np.array(Qbc)
+    
+    def sim(self):
+        
+        A=np.ones((self.xnum*2+1,self.tnum))
+        Q=np.ones((self.xnum*2+1,self.tnum))
+        u=np.ones((self.xnum*2+1,self.tnum))
+        Z=np.ones((self.xnum*2+1,self.tnum))
+        b=np.ones((self.xnum*2+1,1))
+        
+        Q[:,0]=self.Qic
+        Q[:,1]=self.Qic
+        Q[0,:]=self.Qbc
+        Z[:,0]=self.hic
+        Z[:,1]=self.hic
+        Z[0,:]=self.hbc
+        
+        #print(A.shape,Q.shape)
+        
+        A[:,0]=Z[:,0]*b.T
+        A[:,1]=Z[:,1]*b.T
+        A[0,:]=Z[0,:]*b[0]
+        
+        u[:,0]=Q[:,0]/A[:,0]
+        u[:,1]=Q[:,1]/A[:,1]
+        u[0,:]=Q[0,:]/A[0,:]
+        
+        for t in range(2,self.tnum-1):
+            
+            for i in range(2,self.xnum*2-2):
+                
+                self.deltt=0.05*self.deltx/(np.max(np.abs(u[:,t]))+np.sqrt(10*np.max(A[:,t]/b[i])))
+                
+                
+                #print(t,i)
+                ###############################################################
+                
+                w=5/8
+                v=1/4
+                SL_0=w*u[i-2,t]\
+                    +(1-w)*u[i,t] \
+                    -v*np.sqrt(10*A[i-2,t]/b[i-2])\
+                    -(1-v)*np.sqrt(10*A[i,t]/b[i])
+                SR_0=(1-w)*u[i-2,t]\
+                    +w*u[i,t]\
+                    +(1-v)*np.sqrt(10*A[i-2,t]/b[i-2])\
+                    +v*np.sqrt(10*A[i,t]/b[i])
+                Q2_0=0.0
+                if SL_0>0:
+                    Q2_0=Q[i-2,t]
+                elif SL_0<0 and SR_0>0:
+                    Q2_0=(SR_0*Q[i-2,t]-SL_0*Q[i,t]+SL_0*SR_0*(A[i,t]-A[i-2,t]))/(SR_0-SL_0)
+                else:
+                    Q2_0=Q[i,t]
+                    
+                SL_1=w*u[i,t]\
+                    +(1-w)*u[i+2,t] \
+                    -v*np.sqrt(10*A[i,t]/b[i])\
+                    -(1-v)*np.sqrt(10*A[i+2,t]/b[i+2])
+                SR_1=(1-w)*u[i,t]\
+                    +w*u[i+2,t]\
+                    +(1-v)*np.sqrt(10*A[i,t]/b[i])\
+                    +v*np.sqrt(10*A[i+2,t]/b[i+2])
+                Q2_1=0.0
+                if SL_1>0:
+                    Q2_1=Q[i,t]
+                elif SL_1<0 and SR_1>0:
+                    Q2_1=(SR_1*Q[i,t]-SL_1*Q[i+2,t]+SL_1*SR_1*(A[i+2,t]-A[i,t]))/(SR_1-SL_1)
+                else:
+                    Q2_1=Q[i+2,t]
+                
+                '''
+                us0=0.5*(u[i-1,t]+u[i,t])+np.sqrt(10*A[i-1,t]/b[i-1])-np.sqrt(10*A[i,t]/b[i])
+                cs0=0.5*(np.sqrt(10*A[i-1,t]/b[i-1])+np.sqrt(10*A[i,t]/b[i]))+0.25*(u[i-1,t]-u[i,t])
+                SL_0=np.min([(u[i-1,t]-np.sqrt(10*A[i-1,t]/b[i-1])),us0-cs0])
+                SR_0=np.max([(u[i,t]+np.sqrt(10*A[i,t]/b[i])),us0+cs0])
+                Q2_0=0.0
+                if SL_0>0:
+                    Q2_0=Q[i-1,t]
+                elif SL_0<0 and SR_0>0:
+                    Q2_0=(SR_0*Q[i-1,t]-SL_0*Q[i,t]+SL_0*SR_0*(A[i,t]-A[i-1,t]))/(SR_0-SL_0)
+                else:
+                    Q2_0=Q[i,t]
+                    
+                us1=0.5*(u[i,t]+u[i+1,t])+np.sqrt(10*A[i,t]/b[i])-np.sqrt(10*A[i+1,t]/b[i+1])
+                cs1=0.5*(np.sqrt(10*A[i,t]/b[i])+np.sqrt(10*A[i+1,t]/b[i+1]))+0.25*(u[i,t]-u[i+1,t])
+                SL_1=np.min([(u[i,t]-np.sqrt(10*A[i,t]/b[i])),us1-cs1])
+                SR_1=np.max([(u[i+1,t]+np.sqrt(10*A[i+1,t]/b[i+1])),us1+cs1])
+                Q2_1=0.0
+                if SL_1>0:
+                    Q2_1=Q[i,t]
+                elif SL_1<0 and SR_1>0:
+                    Q2_1=(SR_1*Q[i,t]-SL_1*Q[i+1,t]+SL_1*SR_1*(A[i+1,t]-A[i,t]))/(SR_1-SL_1)
+                else:
+                    Q2_1=Q[i+1,t]
+                '''
+                
+                #print('Q2:',Q2_0,'Q1:',Q2_1)
+                #print(SL_0,SR_0,SL_0,SR_1,t,i)
+                ###############################################################
+                
+                A[i,t+1]=A[i,t]+0.5*(self.deltt/self.deltx)*(Q2_0-Q2_1)#+self.deltt*Si
+                #print('Q2-Q1:',Q2_0-Q2_1)
+                #print('gama:',self.deltt/self.deltx)
+                #print('A:',A[i,t],'At:',A[i,t+1])
+                
+                if(A[i,t+1]<=0):
+                    #print('wrong',t,i)
+                    A[i,t+1]=0.01#np.abs(A[i,t+1])
+                ###############################################################
+                II=0.0
+                if Q[i,t]>0 or Q[i,t]==0:
+                    II=((Q[i,t]/A[i,t])**2-0.5*(Q[i-2,t]/A[i-2,t])**2)/self.deltx
+                else:
+                    II=((Q[i+2,t]/A[i+2,t])**2-0.5*(Q[i,t]/A[i,t])**2)/self.deltx
+                #print('ii:',II)
+                
+                
+                III=0.0
+                if Q[i,t]>0:
+                    if i<2:
+                        III=(-7*Z[i-1,t]+3*Z[i,t]+3*Z[i+1,t])/(4*self.deltx)
+                    else:
+                        III=(Z[i-2,t]-7*Z[i-1,t]+3*Z[i,t]+3*Z[i+1,t])/(4*self.deltx)
+                elif Q[i,t]==0:
+                    III=(Z[i+1,t]-Z[i-1,t])/(self.deltx)
+                else:
+                    if i<2:
+                        III=(7*Z[i+1,t]-3*Z[i,t]-3*Z[i-1,t])/(4*self.deltx)
+                    else:
+                        III=(-Z[i-2,t]+7*Z[i+1,t]-3*Z[i,t]-3*Z[i-1,t])/(4*self.deltx)
+                
+                III=0.0
+                k=0
+                if Q[i,t]>0.0 and Q[i-2,t]>0.0:
+                    k=0
+                elif Q[i,t]<0.0 and Q[i+2,t]<0.0:
+                    k=2
+                Cup=(0.25*self.deltt/self.deltx)*(np.abs(u[i+k,t])+np.abs(u[i-2+k,t]))
+                Cdown=(0.25*self.deltt/self.deltx)*(np.abs(u[i+2-k,t])+np.abs(u[i-k,t]))
+                
+                deltZup=(Z[i+k,t]-Z[i-2+k,t])/(2*self.deltx)
+                deltZdown=(Z[i+2-k,t]-Z[i-k,t])/(2*self.deltx)
+                
+                III=np.sqrt(Cup)*deltZup+(1-np.sqrt(Cdown))*deltZdown
+                
+                
+                #III=(Z[i+1,t]-Z[i-1,t])/(4*self.deltx)
+                
+                #print('iii:',III)
+                ###############################################################
+                a=Q[i,t]-self.deltt*II-10*A[i,t]*III*self.deltt
+                am=1+((10*self.n**2*np.abs(Q[i,t])*self.deltt)/(np.power(self.R,4/3)*A[i,t]))
+                Q[i,t+1]=a/am
+                
+                Z[i,t+1]=A[i,t+1]/b[i]
+                u[i,t+1]=Q[i,t+1]/A[i,t+1]
+                
+            A[A.shape[0]-1,t+1]=A[A.shape[0]-3,t+1]
+            Q[Q.shape[0]-1,t+1]=Q[Q.shape[0]-3,t+1]
+            Z[Z.shape[0]-1,t+1]=Z[Z.shape[0]-3,t+1]
+            u[u.shape[0]-1,t+1]=u[u.shape[0]-3,t+1]
+            
+            A[A.shape[0]-2,t+1]=A[A.shape[0]-3,t+1]
+            Q[Q.shape[0]-2,t+1]=Q[Q.shape[0]-3,t+1]
+            Z[Z.shape[0]-2,t+1]=Z[Z.shape[0]-3,t+1]
+            u[u.shape[0]-2,t+1]=u[u.shape[0]-3,t+1]
+        
+        
+        #print(Z.shape,Q.shape)
+        self.A=A
+        self.Q=Q
+        self.Z=Z
+        
 
 
 class NN_SV:
@@ -33,7 +246,7 @@ class NN_SV:
         self.NN_en_n=int(self.xnum*3/4)#number of nodes encoding
         self.NN_de_n=int(self.xnum*3/4)#number of nodes decoding
         self.NN_ed_n=int(self.xnum/3)#number of nodes of encoded layers/ input dimension of EDMD
-        print(self.xnum,self.tnum,self.NN_de_n)
+        #print(self.xnum,self.tnum,self.NN_de_n)
         self.bc_size=2
         
         
@@ -47,7 +260,7 @@ class NN_SV:
     def data_generate(self):
         
         def SV_modeldata():
-            sv=SV.SV_eq_v2(self.T,self.X,self.tnum,self.xn,self.n,self.R,self.rate)
+            sv=SV_eq_v2(self.T,self.X,self.tnum,self.xn,self.n,self.R,self.rate)
             sv.sim()
             return sv.Q,sv.A,sv.Z
         self.Q,self.A,self.Z=SV_modeldata()
@@ -195,8 +408,8 @@ class NN_SV:
             saver = tf.train.Saver()
             saver_path = saver.save(self.sess, "./save/model.ckpt")
             print (j,"Model saved in file: ", saver_path,'error:',r)       
-        plt.figure()
-        plt.plot(er)    
+        #plt.figure()
+        #plt.plot(er)    
         
         #save model
         saver = tf.train.Saver()
@@ -239,7 +452,7 @@ class NN_SV:
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, tv0, rstride=1, cstride=1, cmap='rainbow')
         plt.show()
-    
+        
         #draw V,H
         figure = plt.figure()
         ax = Axes3D(figure)
@@ -277,12 +490,18 @@ if __name__=='__main__':
     xnum=20
     n=0.01
     R=10
-    
-    nn=NN_SV(T,N,tnum,xnum,n,R)
-    nn.data_generate()
-    nn._build_model()
-    nn.training()
-    nn.test()
+    for it in range(10):
+        print('training round:',it)
+        nn=NN_SV(T,N,tnum,xnum,n,R)
+        nn.data_generate()
+        nn._build_model()
+        nn.training()
+        del nn
+        gc.collect()
+    #nn=NN_SV(T,N,tnum,xnum,n,R)
+    #nn.data_generate()
+    #nn._build_model()
+    #nn.test()
     
 
        
