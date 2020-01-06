@@ -253,7 +253,7 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=100
+        self.steps=200
         self.lr=0.0005
     
     #generate data based on SV equations
@@ -490,7 +490,7 @@ if __name__=='__main__':
     xnum=20
     n=0.01
     R=10
-    for it in range(100):
+    for it in range(30):
         print('training round:',it)
         nn=NN_SV(T,N,tnum,xnum,n,R)
         nn.data_generate()
