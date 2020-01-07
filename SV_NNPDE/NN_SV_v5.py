@@ -159,8 +159,8 @@ class NN_SV:
     def training(self):
         self.sess=tf.Session()
         saver = tf.train.Saver()
-        #self.sess.run(tf.global_variables_initializer())
-        saver.restore(self.sess, "./save/model.ckpt")
+        self.sess.run(tf.global_variables_initializer())
+        #saver.restore(self.sess, "./save/model.ckpt")
         bc,Qic,Aic,Qp,Ap=[],[],[],[],[]
         for i in range(8):
             self.rate=i/10
@@ -213,7 +213,7 @@ class NN_SV:
         bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
         
         self.sess=tf.Session()
-        saver.restore(self.sess, "./save/model.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
                                              self.bc:bc})  
@@ -281,7 +281,7 @@ if __name__=='__main__':
     nn=NN_SV(T,N,tnum,xnum,n,R)
     nn.data_generate()
     nn._build_model()
-    nn.training()
+    #nn.training()
     nn.test()
     
 

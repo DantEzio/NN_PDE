@@ -490,6 +490,7 @@ if __name__=='__main__':
     xnum=20
     n=0.01
     R=10
+    
     for it in range(1):
         print('training round:',it)
         nn=NN_SV(T,N,tnum,xnum,n,R)
@@ -498,10 +499,11 @@ if __name__=='__main__':
         nn.training()
         del nn
         gc.collect()
-    #nn=NN_SV(T,N,tnum,xnum,n,R)
-    #nn.data_generate()
-    #nn._build_model()
-    #nn.test()
-    
+    '''
+    nn=NN_SV(T,N,tnum,xnum,n,R)
+    nn.data_generate()
+    nn._build_model()
+    nn.test()
+    '''
 
        
