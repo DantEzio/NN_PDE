@@ -253,8 +253,8 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=3000
-        self.lr=0.0008
+        self.steps=200
+        self.lr=0.0009
     
     #generate data based on SV equations
     def data_generate(self):
@@ -373,7 +373,7 @@ class NN_SV:
         self.sess=tf.Session()
         saver = tf.train.Saver()
         #self.sess.run(tf.global_variables_initializer())
-        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_70.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_98.ckpt")
         bc,Qic,Aic,Qp,Ap=[],[],[],[],[]
         for i in range(3,4):
             self.rate=i/10
@@ -406,14 +406,14 @@ class NN_SV:
                                                 self.Apre:Ap})
             er.append(r)
             saver = tf.train.Saver()
-            saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_71.ckpt")
+            saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_99.ckpt")
             print (j,"Model saved in file: ", saver_path,'error:',r)       
         #plt.figure()
         #plt.plot(er)    
         
         #save model
         saver = tf.train.Saver()
-        saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_71.ckpt")
+        saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_99.ckpt")
         print ("Model saved in file: ", saver_path)
         
     #test
