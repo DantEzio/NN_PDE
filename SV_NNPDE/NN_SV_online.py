@@ -254,7 +254,7 @@ class NN_SV:
         self.batch_size=1
         self.state_size=20
         self.steps=200
-        self.lr=0.0009
+        self.lr=0.003
     
     #generate data based on SV equations
     def data_generate(self):
@@ -369,11 +369,11 @@ class NN_SV:
 
     
     #generate different data based on different bc&ic for training
-    def training(self):
+    def training(self,iten):
         self.sess=tf.Session()
         saver = tf.train.Saver()
         #self.sess.run(tf.global_variables_initializer())
-        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_98.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_"+str(iten)+".ckpt")
         bc,Qic,Aic,Qp,Ap=[],[],[],[],[]
         for i in range(3,4):
             self.rate=i/10
@@ -387,6 +387,7 @@ class NN_SV:
             Ap.append(Apt)
         
         er=[]
+        log=True
         for j in range(self.steps):
             '''
             if j>int(self.steps*2/10) and j<=int(self.steps*4/10):
@@ -404,18 +405,26 @@ class NN_SV:
                                                 self.bc:bc,
                                                 self.Qpre:Qp,
                                                 self.Apre:Ap})
+                    
             er.append(r)
-            saver = tf.train.Saver()
-            saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_99.ckpt")
-            print (j,"Model saved in file: ", saver_path,'error:',r)       
+            if np.isnan(r):
+                log=False
+                print(j)
+                break
+            else:
+                log=True
+                saver = tf.train.Saver()
+                saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_"+str(iten+1)+".ckpt")
+                print (j,"Model saved in file: ", saver_path,'error:',r)
+            
         #plt.figure()
-        #plt.plot(er)    
-        
+        #plt.plot(er)
         #save model
-        saver = tf.train.Saver()
-        saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_99.ckpt")
-        print ("Model saved in file: ", saver_path)
-        
+        #saver = tf.train.Saver()
+        #saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_"+str(iten+1)+".ckpt")
+        #print ("Model saved in file: ", saver_path)
+        return log
+    
     #test
     def test(self):
         #test on new dataset 
@@ -490,15 +499,41 @@ if __name__=='__main__':
     xnum=20
     n=0.01
     R=10
-    
+
     for it in range(1):
+        filename = "D:/Chong/NN_PDE/SV_NNPDE/iten.txt"
+        nanlog="D:/Chong/NN_PDE/SV_NNPDE/nan.txt"
+        with open(filename) as f:
+            iten = f.readline()
+            print(iten)
+        
+        with open(nanlog) as f:
+            nl = f.readline()
+            print('nan:',nl)
+        
         print('training round:',it)
         nn=NN_SV(T,N,tnum,xnum,n,R)
         nn.data_generate()
         nn._build_model()
-        nn.training()
+        if nl=='nan':
+            nn.lr=nn.lr+0.001*np.random.random(1)[0]
+            print('change lr')
+        log=nn.training(int(float(iten)))
         del nn
         gc.collect()
+        #print(log)
+        if not log:
+            with open(nanlog,'w') as f: 
+                f.write('nan')
+                print('nan')
+            pass
+        else:
+            with open(filename,'w') as f: 
+                f.write(str(int(float(iten))+1))
+                print(str(int(float(iten))+1))
+            with open(nanlog,'w') as f: 
+                f.write('num')
+                print('num')
     '''
     nn=NN_SV(T,N,tnum,xnum,n,R)
     nn.data_generate()
