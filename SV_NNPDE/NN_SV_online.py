@@ -513,11 +513,14 @@ if __name__=='__main__':
         
         print('training round:',it)
         nn=NN_SV(T,N,tnum,xnum,n,R)
+        
+        print(nn.lr)
+        if nl=='nan':
+            nn.lr=nn.lr+0.02*(-1+2*np.random.random(1)[0])
+            print('change lr:',nn.lr)
+        
         nn.data_generate()
         nn._build_model()
-        if nl=='nan':
-            nn.lr=nn.lr+0.001*np.random.random(1)[0]
-            print('change lr')
         log=nn.training(int(float(iten)))
         del nn
         gc.collect()
