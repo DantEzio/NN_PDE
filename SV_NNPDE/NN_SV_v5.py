@@ -41,7 +41,7 @@ class NN_SV:
         self.batch_size=1
         self.state_size=20
         self.steps=100
-        self.lr=0.0005
+        self.lr=0.00012
     
     #generate data based on SV equations
     def data_generate(self):
@@ -160,9 +160,9 @@ class NN_SV:
         self.sess=tf.Session()
         saver = tf.train.Saver()
         #self.sess.run(tf.global_variables_initializer())
-        saver.restore(self.sess, "./save/model.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v3_1.ckpt")
         bc,Qic,Aic,Qp,Ap=[],[],[],[],[]
-        for i in range(8):
+        for i in range(2,3):
             self.rate=i/10
             self.data_generate()
             #print(self.xnum,self.xn)
@@ -175,12 +175,12 @@ class NN_SV:
         
         er=[]
         for j in range(self.steps):
-            '''
+            
             if j>int(self.steps*2/10) and j<=int(self.steps*4/10):
                 self.lr=0.0005
             if j>int(self.steps*9/10):
                 self.lr=0.0002
-            '''
+            
             self.sess.run(self.train,feed_dict={self.Qic:Qic,
                                                 self.Aic:Aic,
                                                 self.bc:bc,
@@ -193,14 +193,14 @@ class NN_SV:
                                                 self.Apre:Ap})
             er.append(r)
             saver = tf.train.Saver()
-            saver_path = saver.save(self.sess, "./save/model.ckpt")
+            saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v3_1.ckpt")
             print (j,"Model saved in file: ", saver_path,'error:',r)       
         plt.figure()
         plt.plot(er)    
         
         #save model
         saver = tf.train.Saver()
-        saver_path = saver.save(self.sess, "./save/model.ckpt")
+        saver_path = saver.save(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v3_1.ckpt")
         print ("Model saved in file: ", saver_path)
         
     #test
@@ -213,7 +213,7 @@ class NN_SV:
         bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
         
         self.sess=tf.Session()
-        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_113.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_6537.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
                                              self.bc:bc})  

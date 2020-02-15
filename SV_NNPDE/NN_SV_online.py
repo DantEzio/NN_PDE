@@ -253,8 +253,8 @@ class NN_SV:
         #parameter of EDMD
         self.batch_size=1
         self.state_size=20
-        self.steps=200
-        self.lr=0.003
+        self.steps=100
+        self.lr=0.0025
     
     #generate data based on SV equations
     def data_generate(self):
@@ -435,7 +435,7 @@ class NN_SV:
         bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
         
         self.sess=tf.Session()
-        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_3.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_1184.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
                                              self.bc:bc})  
@@ -516,8 +516,9 @@ if __name__=='__main__':
         
         print(nn.lr)
         if nl=='nan':
-            nn.lr=nn.lr+0.02*(-1+2*np.random.random(1)[0])
+            nn.lr=nn.lr+0.001*(-1+2*np.random.random(1)[0])
             print('change lr:',nn.lr)
+            
         
         nn.data_generate()
         nn._build_model()
@@ -529,6 +530,9 @@ if __name__=='__main__':
             with open(nanlog,'w') as f: 
                 f.write('nan')
                 print('nan')
+            with open(filename,'w') as f: 
+                f.write(str(int(float(iten))-1))
+                print(str(int(float(iten))-1))
             pass
         else:
             with open(filename,'w') as f: 
