@@ -213,7 +213,7 @@ class NN_SV:
         bc,Qic,Aic,Qp,Ap=[bc],[Qic],[Aic],[Qp],[Ap]
         
         self.sess=tf.Session()
-        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_6537.ckpt")
+        saver.restore(self.sess, "D:/Chong/NN_PDE/SV_NNPDE/save/model_v2_15512.ckpt")
         Qpp=self.sess.run(self.Qout,feed_dict={self.Qic:Qic,
                                              self.Aic:Aic,
                                              self.bc:bc})  
