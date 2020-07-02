@@ -223,7 +223,7 @@ class SV_eq_v2:
         self.Z=Z
         
         
-        '''
+        
         #draw Z,Q
         #Z=Z[2:Z.shape[0]-3,2:Z.shape[1]-3]
         figure = plt.figure()
@@ -233,6 +233,7 @@ class SV_eq_v2:
         #网格化数据
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, Z.T, rstride=1, cstride=1, cmap='rainbow')
+        plt.title('Z')
         plt.show()
         
         
@@ -244,8 +245,9 @@ class SV_eq_v2:
         #网格化数据
         X, Y = np.meshgrid(X, Y)
         ax.plot_surface(X, Y, Q.T, rstride=1, cstride=1, cmap='rainbow')
+        plt.title('Q')
         plt.show()
-        '''
+        
         
         #plt.figure()
         #plt.plot(H)
